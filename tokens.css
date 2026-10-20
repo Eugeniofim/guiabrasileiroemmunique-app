@@ -1,0 +1,139 @@
+/* =========================================================
+   APP-GUIA — Design tokens
+   Contrastes medidos (WCAG AA). Não usar hex solto no código.
+   ========================================================= */
+
+:root{
+  /* ---------- MARCA (a identidade do Mario) ----------
+     O azul da bandeira da Baviera, escurecido para dar leitura, e o amarelo
+     do Brasil como assinatura — um guia brasileiro em Munique. */
+  --brand-primaria:   #163E70;   /* azul bávaro profundo · botão com texto branco */
+  --brand-assinatura: #F2C230;   /* amarelo · assinatura, NUNCA texto sobre claro */
+  --brand-destaque:   #2860A8;   /* azul médio */
+  --brand-neutro:     #5E6B7A;
+  --brand-preto:      #111111;
+
+  /* ---------- FUNDOS ---------- */
+  --paper:     #FBF8F3;  /* marfim quente — o fundo do app, nunca branco puro */
+  --surface:   #FFFFFF;  /* cartões */
+  --surface-2: #F2EDE4;  /* areia — blocos secundários */
+  --surface-3: #E8E0D3;
+  --line:      #DDE1E6;
+  --line-2:    #C5CCD5;
+
+  /* ---------- TEXTO ---------- */
+  --ink:    #111111;   /* 17.8:1 */
+  --ink-2:  #3F4650;   /* corpo secundário */
+  --ink-3:  #5E6B7A;   /* legendas · 5.0:1 — mínimo permitido */
+
+  /* ---------- AÇÃO ---------- */
+  --accent:       var(--brand-primaria);
+  --accent-ink:   #FFFFFF;          /* texto sobre o verde */
+  --accent-wash:  #E3EAF4;          /* fundo de pílula · vinho por cima = 8.5:1 */
+  --accent-line:  #C4D2E6;
+
+  /* O amarelo é a assinatura da marca: preenchimento, nunca texto claro */
+  --highlight:      var(--brand-assinatura);
+  --highlight-ink:  #111111;        /* 8.7:1 sobre o amarelo */
+  --highlight-wash: #F7EDD8;
+  --highlight-text: #7A5A12;        /* versão escura para texto · 6.0:1 */
+
+  /* ---------- ESTADOS (separados da paleta de marca) ---------- */
+  --ok:        #2E6B4F;  --ok-wash:    #E3EDE6;   /* pago, confirmado */
+  --warn:      #7e6308;  --warn-wash:  #f6edd3;   /* pendente, vence */
+  --danger:    #a3053f;  --danger-wash:#f2e0e1;   /* vencido, cancelado */
+  --neutral:   #4A4045;  --neutral-wash:#ece6e4;
+
+  /* ---------- TIPOGRAFIA ---------- */
+  /* Montserrat = a fonte do logotipo. Karla = leitura. Mono = números. */
+  --f-display: "Montserrat", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-ui:      "Karla", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-display: 700;   /* títulos: peso do logo */
+  --t-strong:  600;
+  --t-body:    400;
+
+  /* escala (1.25) */
+  --fs-9:  44px;  --lh-9: 1.04;
+  --fs-8:  34px;  --lh-8: 1.08;
+  --fs-7:  27px;  --lh-7: 1.14;
+  --fs-6:  22px;  --lh-6: 1.22;
+  --fs-5:  18px;  --lh-5: 1.35;
+  --fs-4:  15px;  --lh-4: 1.55;   /* corpo */
+  --fs-3:  13px;  --lh-3: 1.5;
+  --fs-2:  11.5px;--lh-2: 1.45;
+  --fs-1:  10px;  --lh-1: 1.4;    /* etiquetas mono, maiúsculas, tracking .14em */
+
+  --track-display: -0.025em;
+  --track-label:    0.14em;
+
+  /* ---------- ESPAÇO ----------
+     Escala de passo 2 até 16px (a interface é densa), depois passo 8.
+     Regra: use o token mais próximo; não invente valores intermediários. */
+  --s-0:2px;  --s-1:4px;  --s-2:6px;  --s-3:8px;   --s-4:10px;
+  --s-5:12px; --s-6:14px; --s-7:16px; --s-8:20px;  --s-9:24px;
+  --s-10:32px; --s-11:40px; --s-12:48px; --s-14:64px;
+
+  /* ---------- FORMA ---------- */
+  --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:26px; --r-pill:999px;
+
+  /* ---------- ELEVAÇÃO ---------- */
+  --sh-1: 0 1px 2px rgba(17,17,17,.04), 0 8px 22px -16px rgba(17,17,17,.28);
+  --sh-2: 0 2px 6px rgba(17,17,17,.05), 0 20px 44px -24px rgba(17,17,17,.34);
+  --sh-3: 0 28px 64px -30px rgba(17,17,17,.42);
+
+  /* ---------- MOVIMENTO ---------- */
+  --ease:   cubic-bezier(.22,1,.36,1);
+  --spring: cubic-bezier(.34,1.4,.5,1);
+  --d-fast: 180ms; --d-base: 260ms; --d-slow: 480ms;
+}
+
+/* Se ela nunca escolheu, o app segue o aparelho. Quem escolheu manda:
+   data-theme fixa e o media query abaixo nao se aplica. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --paper:#0F1319; --surface:#161C24; --surface-2:#1E2630; --surface-3:#28313D;
+    --line:#28313D; --line-2:#394556;
+    --ink:#F2F4F7; --ink-2:#B9C2CE; --ink-3:#8E9AA8;
+    --accent:#8DB6EC; --accent-ink:#0B1A2E; --accent-wash:#16243A; --accent-line:#2A4266;
+    --highlight:#F2C230; --highlight-ink:#1A1405; --highlight-wash:#332512; --highlight-text:#F2C230;
+    --ok:#6FC79E;  --ok-wash:#132A20;
+    --warn:#E3B23C; --warn-wash:#332512;
+    --danger:#F0708F; --danger-wash:#331520;
+    --neutral:#B9C2CE; --neutral-wash:#1E2630;
+    --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+    --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+    --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+  }
+}
+
+/* Tema escuro — o painel dela à noite. O azul clareia, o amarelo se mantém. */
+:root[data-theme="dark"]{
+  --paper:#0F1319; --surface:#161C24; --surface-2:#1E2630; --surface-3:#28313D;
+  --line:#28313D; --line-2:#394556;
+  --ink:#F2F4F7; --ink-2:#B9C2CE; --ink-3:#8E9AA8;
+  --accent:#8DB6EC; --accent-ink:#0B1A2E; --accent-wash:#16243A; --accent-line:#2A4266;
+  --highlight:#F2C230; --highlight-ink:#1A1405; --highlight-wash:#332512; --highlight-text:#F2C230;
+  --ok:#6FC79E;  --ok-wash:#132A20;
+  --warn:#E3B23C; --warn-wash:#332512;
+  --danger:#F0708F; --danger-wash:#331520;
+  --neutral:#B9C2CE; --neutral-wash:#1E2630;
+  --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+  --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+  --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+}
+
+/* =========================================================
+   REGRAS QUE NÃO SE QUEBRAM
+   1. Amarelo nunca é texto sobre fundo claro. Use --highlight-text.
+   2. Verde é a ação principal. Um botão verde por tela.
+   3. Vinho é urgência (vencido, últimas vagas). Não decora.
+   4. Cinza é legenda, nunca título.
+   5. Números sempre em --f-mono com font-variant-numeric: tabular-nums.
+   6. Toda cor sai daqui. Hex solto no componente = bug.
+      Exceção única: #fff sobre preenchimento de marca (verde/vinho).
+   7. Espaçamento sai de --s-*. Valor cru em px = dívida a pagar.
+   8. Todo controle clicável precisa de :focus-visible próprio ou herdado.
+   9. Botão só com ícone precisa de aria-label; ícone decorativo, aria-hidden.
+   ========================================================= */
