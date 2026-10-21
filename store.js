@@ -489,8 +489,13 @@ function _seed() {
 
 /* apaga tudo — o guia começa do zero */
 function clearAll() {
+  /* "apagar tudo" é de propósito: o aparelho continua "em dia" com a nuvem (nuvem-itens.js),
+     então o que é privado também some de lá. Os outros caminhos que trocam o DB (aparelho
+     limpo, Sincronizar de novo) perdem a marca e releem a nuvem — nunca apagam. */
+  const emDia = DB && DB._itensEmDia;
   DB = _blank();
   DB.demo = false;
+  if (emDia) DB._itensEmDia = true;
   save();
 }
 function restoreDemo() { DB = _seed(); save(); }
@@ -565,6 +570,8 @@ function load() {
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
   if (typeof cloudPushState === 'function') cloudPushState();
+  /* o que é privado sobe linha a linha (nuvem-itens.js) */
+  if (typeof itAgendar === 'function') itAgendar();
 }
 function resetDemo() { DB = _seed(); save(); }
 

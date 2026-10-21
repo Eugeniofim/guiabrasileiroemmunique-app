@@ -1,0 +1,180 @@
+/* =====================================================
+   NUVEM POR LINHA — a regra de ouro (skill app-sempre-junto)
+
+   "Um banco. Muitas janelas. Cada registro e uma linha."
+   Tudo o que nasceu depois do app de reservas (guias, disponibilidade,
+   contas, orcamentos/CRM, fichas, clientes, tarefas, parceiros, pedidos)
+   sobe como uma linha da tabela `itens`. Celular e computador olham para o
+   mesmo banco: mexeu num, o outro recebe — sem "qual versao vale".
+
+   As 4 pecas: SOMBRA (o que este aparelho sabe que ja esta no banco), FILA
+   (o que ainda nao subiu — sobrevive a fechar o app), MARCA (ate que hora
+   ja leu) e EM DIA (so depois da primeira sincronia o app manda coisas).
+
+   TRAVA CONTRA PERDA TOTAL (20/10/2026, igual a base): o "em dia" mora DENTRO
+   do DB (DB._itensEmDia), nao numa chave separada. Antes ele morava ao lado:
+   o botao "Sincronizar de novo" apagava o DB e deixava a sombra cheia, e o
+   primeiro envio depois marcava TUDO como apagado no banco. Agora, DB apagado
+   ou trocado = "em dia" some junto = o aparelho rele o banco inteiro antes de
+   mandar qualquer coisa, e o que so ele tinha sobe (junta, nao troca).
+   Catalogo e reservas continuam no cloud.js, que ja estava testado.
+   ===================================================== */
+'use strict';
+
+/* Mario (Munique) (21/10/2026): o que é PRIVADO e sobe linha a linha — o appstate é público
+   (o site lê de lá), então nada daqui pode ir para ele. */
+const ITENS_COLS = ['pedidos', 'links', 'regioes'];
+/* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
+const ITENS_DIC = [];
+const IT_SOMBRA = 'mario_sombra_v1', IT_FILA = 'mario_fila_v1', IT_MARCA = 'mario_marca_v1';
+/* a chave antiga do "em dia" (ate 18/10): nao vale mais nada, so e apagada */
+const IT_EMDIA_VELHO = 'mario_emdia_v1';
+const itLe = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+const itGrava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const itEmDia = () => typeof DB !== 'undefined' && !!DB && DB._itensEmDia === true;
+
+/* id de cada registro: o proprio id; disponibilidade e guia|dia|turno */
+function itemId(col, x, chave) {
+  if (ITENS_DIC.includes(col)) return chave;
+  if (col === 'disp') return `${x.pessoaId}|${x.data}|${x.turno}`;
+  return x.id;
+}
+function itensDe(col) {
+  const v = DB && DB[col];
+  if (ITENS_DIC.includes(col)) return Object.entries(v || {}).map(([k, d]) => [k, d]);
+  return (Array.isArray(v) ? v : []).filter(x => x && itemId(col, x)).map(x => [itemId(col, x), x]);
+}
+/* a dona, logada e com banco: so assim o app manda e le os itens */
+const itPronto = () => typeof temNuvem === 'function' && temNuvem() && typeof isLoggedIn === 'function' && isLoggedIn();
+
+/* compara com a SOMBRA e poe na FILA so o que mudou (e o que sumiu vira apagado) */
+function itEnfileirar() {
+  if (!itPronto() || !itEmDia()) return 0;
+  const sombra = itLe(IT_SOMBRA, {}), fila = itLe(IT_FILA, {});
+  let n = 0;
+  for (const col of ITENS_COLS) {
+    const s = sombra[col] = sombra[col] || {}, vivos = new Set();
+    for (const [id, x] of itensDe(col)) {
+      vivos.add(id); const j = JSON.stringify(x);
+      if (s[id] !== j) { s[id] = j; fila[col + '\u0001' + id] = { colecao: col, id, dados: x, apagado: false }; n++; }
+    }
+    for (const id of Object.keys(s)) if (!vivos.has(id)) { delete s[id]; fila[col + '\u0001' + id] = { colecao: col, id, dados: {}, apagado: true }; n++; }
+  }
+  itGrava(IT_SOMBRA, sombra); itGrava(IT_FILA, fila);
+  return n;
+}
+async function itEnviarFila() {
+  if (!itPronto()) return false;
+  const fila = itLe(IT_FILA, {}), linhas = Object.values(fila);
+  if (!linhas.length) return true;
+  for (let k = 0; k < linhas.length; k += 200) {
+    const lote = linhas.slice(k, k + 200);
+    try {
+      const r = await supaFetch('itens?on_conflict=colecao,id', { method: 'POST', body: JSON.stringify(lote),
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
+      if (!r.ok) return false;
+      const f2 = itLe(IT_FILA, {});
+      for (const l of lote) { const kk = l.colecao + '\u0001' + l.id; if (f2[kk] && JSON.stringify(f2[kk]) === JSON.stringify(l)) delete f2[kk]; }
+      itGrava(IT_FILA, f2);
+    } catch (e) { return false; }
+  }
+  return true;
+}
+/* aplica no DB o que veio do banco; grava so no aparelho (nunca re-enfileira) */
+function itAplicar(linhas) {
+  const sombra = itLe(IT_SOMBRA, {}), fila = itLe(IT_FILA, {});
+  let mudou = 0;
+  for (const l of linhas) {
+    const col = l.colecao; if (!ITENS_COLS.includes(col)) continue;
+    /* o que este aparelho mexeu e ainda nao subiu vale mais que a copia do banco */
+    if (fila[col + '\u0001' + l.id]) continue;
+    const s = sombra[col] = sombra[col] || {};
+    if (ITENS_DIC.includes(col)) {
+      DB[col] = DB[col] || {};
+      if (l.apagado) delete DB[col][l.id]; else DB[col][l.id] = l.dados;
+    } else {
+      DB[col] = Array.isArray(DB[col]) ? DB[col] : [];
+      const i = DB[col].findIndex(x => itemId(col, x) === l.id);
+      if (l.apagado) { if (i >= 0) DB[col].splice(i, 1); }
+      else if (i >= 0) DB[col][i] = l.dados; else DB[col].push(l.dados);
+    }
+    if (l.apagado) delete s[l.id]; else s[l.id] = JSON.stringify(l.dados);
+    mudou++;
+  }
+  itGrava(IT_SOMBRA, sombra);
+  if (mudou) try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {}
+  /* chegou memória do assistente de outro aparelho: o assistente daqui passa a saber */
+  return mudou;
+}
+async function itPuxar() {
+  if (!itPronto()) return { ok: false };
+  const marca = itLe(IT_MARCA, '');
+  let r;
+  try { r = await supaFetch('itens?select=colecao,id,dados,apagado,atualizado_em' + (marca ? '&atualizado_em=gt.' + encodeURIComponent(marca) : '') + '&order=atualizado_em.asc&limit=5000'); }
+  catch (e) { return { ok: false }; }
+  if (!r.ok) return { ok: false };
+  const linhas = await r.json();
+  const n = itAplicar(linhas);
+  if (linhas.length) itGrava(IT_MARCA, linhas[linhas.length - 1].atualizado_em);
+  return { ok: true, n };
+}
+/* DB sem a marca = aparelho novo, navegador limpo, "Sincronizar de novo" ou
+   a primeira abertura com esta versao (a chave antiga nao vale: o DB pode ter
+   sido trocado com ela "em dia"). A sombra e a marca de leitura que sobraram
+   nao valem mais nada: zera e rele o banco inteiro. Sem isto, a sombra cheia
+   + DB vazio virava "ela apagou tudo" no primeiro envio. Da fila so fica o
+   que ainda e igual no DB de agora (o que ela mexeu sem rede e nao subiu);
+   apagado e coisa de um DB que nao existe mais vao embora. */
+function itRecomecar() {
+  const fila = itLe(IT_FILA, {}), atual = {}, resto = {};
+  for (const col of ITENS_COLS) for (const [id, x] of itensDe(col)) atual[col + '\u0001' + id] = JSON.stringify(x);
+  for (const [k, l] of Object.entries(fila)) if (l && !l.apagado && atual[k] === JSON.stringify(l.dados)) resto[k] = l;
+  itGrava(IT_SOMBRA, {}); itGrava(IT_MARCA, ''); itGrava(IT_FILA, resto);
+  try { localStorage.removeItem(IT_EMDIA_VELHO); } catch (e) {}
+}
+/* O RITUAL DE ABRIR: le o banco (insistindo — o plano gratis dorme), junta o
+   que este aparelho tinha e o banco nao, e so entao passa a mandar. */
+async function itSincronizarAoAbrir() {
+  if (!itPronto()) return { ok: false };
+  if (!itEmDia()) itRecomecar();
+  let r = { ok: false };
+  for (let k = 0; k < 3 && !r.ok; k++) { r = await itPuxar(); if (!r.ok) await new Promise(ok => setTimeout(ok, 1500 * (k + 1))); }
+  if (!r.ok) return r;
+  if (!itEmDia()) {
+    /* primeira leitura deste DB: o que so ele tinha sobe (junta, nao troca) */
+    DB._itensEmDia = true;
+    try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {}
+  }
+  itEnfileirar();
+  await itEnviarFila();
+  return { ok: true, n: r.n };
+}
+/* depois de qualquer gravacao: enfileira e manda em ~1 s */
+let itT = null;
+function itAgendar() {
+  if (!itPronto() || !itEmDia()) return;
+  clearTimeout(itT);
+  itT = setTimeout(() => { itEnfileirar(); itEnviarFila(); }, 900);
+}
+/* O VISITANTE (cliente no site) so CRIA pedido: nao le nada, nao muda nada.
+   E o que faz o "Personalize seu passeio" chegar no celular dela. */
+async function itPedidoPublico(colecao, x) {
+  if (!(typeof temNuvem === 'function' && temNuvem()) || colecao !== 'pedidos' || !x || !x.id) return false;
+  try { const r = await supaFetch('itens', { method: 'POST', body: JSON.stringify({ colecao, id: x.id, dados: x, apagado: false }) }); return r.ok || r.status === 409; }
+  catch (e) { return false; }
+}
+/* de 25 em 25 s, e quando a internet volta (nunca depender so do aviso na hora).
+   O relogio tambem pega o que foi gravado sem passar pelo save(), e refaz o
+   ritual de abrir se o DB perdeu a marca no meio do caminho. */
+let itRelogio = null;
+function itLigar(onChange) {
+  if (itRelogio || !itPronto()) return;
+  itSincronizarAoAbrir().then(r => { if (r.ok && r.n && onChange) onChange(r); });
+  itRelogio = setInterval(async () => {
+    if (!itPronto()) return;
+    if (!itEmDia()) { const r0 = await itSincronizarAoAbrir(); if (r0.ok && r0.n && onChange) onChange(r0); return; }
+    itEnfileirar(); await itEnviarFila();
+    const r = await itPuxar(); if (r.ok && r.n && onChange) onChange(r);
+  }, 25000);
+  if (typeof addEventListener === 'function') addEventListener('online', () => { itEnfileirar(); itEnviarFila(); });
+}

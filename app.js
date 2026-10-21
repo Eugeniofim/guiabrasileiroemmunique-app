@@ -1444,6 +1444,8 @@ function onCloudRejected() {
 }
 
 function admShell(tab, inner) {
+  /* a sincronia por linha (nuvem-itens.js) liga na primeira tela do painel, com a dona logada */
+  if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
