@@ -565,7 +565,20 @@ function load() {
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);
+  semeiaNovidades();
   return DB;
+}
+/* o que a nuvem ainda não tem entra aqui — roda no load() e depois de cada leitura da nuvem
+   (cloud.js); se for o dono logado, sobe. Devolve true se mudou algo nos Ajustes. */
+function semeiaNovidades() {
+  const antes = JSON.stringify(DB.settings);
+  /* 27/10/2026 — O KIT DA VIAGEM (kit-mario.js). (1) o servidor (e-mail de recibo e de confirmação)
+     só põe o link do kit em app que sabe abrir: kitVersao nos Ajustes (públicos), que sobem quando ele entra.
+     (2) o e-mail ao cliente passou a sair de verdade (função avisos): liga UMA vez o "avisar clientes"
+     para o botão "Avisar cliente" aparecer; ele desliga em Ajustes → Avisos (e aí a escolha dele vale). */
+  if (+DB.settings.kitVersao !== 1) DB.settings.kitVersao = 1;
+  if (!DB.settings.avisoClientesV1) { if (!DB.settings.avisoClientesEscolhido) DB.settings.avisarClientes = true; DB.settings.avisoClientesV1 = true; }
+  return JSON.stringify(DB.settings) !== antes;
 }
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));

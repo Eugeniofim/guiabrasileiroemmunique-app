@@ -17,12 +17,15 @@ const hjNome1 = (n) => String(n || '').trim().split(' ')[0];
 const hjTour = (b) => Tours.get(b.tourId) || { name: { pt: '' }, meeting: '' };
 const hjTl = (o) => (o && (o[LANG] || o.pt)) || '';
 
+const hjChave = (b) => String(b.email || b.whats || b.name || '').toLowerCase();
 function hjMsgLembrete(b) {
   const x = hjTour(b);
   const falta = Bookings.due(b);
   return `Olá, ${hjNome1(b.name)}! Aqui é o ${guiaNome()}, seu guia em Munique 😊\n\n`
     + `Amanhã é o nosso passeio: ${hjTl(x.name)}!\n🕘 ${b.time}\n📍 ${noIdioma(x.meeting)}\n`
     + (falta > 0 ? `💶 Restante a pagar no dia: ${eur(falta)}\n` : '')
+    /* 27/10: o kit da viagem (o voucher e tudo) — o link curto, se ele já mandou o kit (kit-mario.js) */
+    + (typeof Kit !== 'undefined' && Kit.urlConhecida(hjChave(b)) ? `🎟 O kit da sua viagem (voucher e tudo): ${Kit.urlConhecida(hjChave(b))}\n` : '')
     + `\nQualquer coisa, é só me chamar aqui. Até amanhã!`;
 }
 function hjWa(b) { return waLink(hjMsgLembrete(b), String(b.whats || '').replace(/\D/g, '')); }

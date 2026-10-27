@@ -285,6 +285,11 @@ function route() {
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
   document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
+  /* rotas dos módulos (o kit da viagem do cliente: #/k/… e #/kt/…): publico-mario.js e kit-mario.js */
+  if (window.ROTAS_EXTRA && typeof ROTAS_EXTRA[p[0]] === 'function') {
+    ROTAS_EXTRA[p[0]](p.slice(1));
+    document.body.classList.toggle('em-adm', false); faixaAcimaDaBarra(); scrollTo(0, 0); return;
+  }
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
   else if (p[0] === 'adm') {
@@ -2865,6 +2870,7 @@ function admSettings() {
     if (v && !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(v)) return toast(t('admAvisoBad'));
     DB.settings.admEmail = v;
     DB.settings.avisarClientes = $('#avCli').checked;
+    DB.settings.avisoClientesEscolhido = true;   /* 27/10: a escolha dele vale no servidor (função avisos) */
     const pega = (id) => $('#' + id).value.trim();
     DB.settings.emailReciboIntro = { pt: pega('reciboIntroPt'), en: pega('reciboIntroEn') };
     DB.settings.emailReciboPS    = { pt: pega('reciboPsPt'),    en: pega('reciboPsEn') };

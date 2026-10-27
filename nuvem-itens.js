@@ -23,9 +23,11 @@
 
 /* Mario (Munique) (21/10/2026): o que é PRIVADO e sobe linha a linha — o appstate é público
    (o site lê de lá), então nada daqui pode ir para ele. */
-const ITENS_COLS = ['pedidos', 'links', 'regioes'];
+/* 27/10/2026: + privado — os códigos dos links curtos do kit da viagem (DB.privado.kits); o servidor
+   procura ali (itens, colecao privado, id kits) o link que vai no e-mail de confirmação do cliente */
+const ITENS_COLS = ['pedidos', 'links', 'regioes', 'privado'];
 /* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
-const ITENS_DIC = [];
+const ITENS_DIC = ['privado'];
 const IT_SOMBRA = 'mario_sombra_v1', IT_FILA = 'mario_fila_v1', IT_MARCA = 'mario_marca_v1';
 /* a chave antiga do "em dia" (ate 18/10): nao vale mais nada, so e apagada */
 const IT_EMDIA_VELHO = 'mario_emdia_v1';
